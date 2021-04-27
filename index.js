@@ -1,8 +1,11 @@
+require('dotenv').config()
 const express = require('express')
 const morgan = require('morgan')
 const socket = require('socket.io')
 const cors = require('cors')
 const http = require('http')
+const moment = require('moment')
+moment.locale('id');
 const userRoute = require('./src/routes/user')
 const PORT = process.env.PORT || 4567
 
@@ -15,23 +18,45 @@ const io = socket(httpServer, {
 })
 
 // socket io
-io.on("connection", (socket)=>{
-  console.log("client terhubung dengan id " + socket.id );
-  
-  let count = 0
-  socket.on('kirimMessage', (data)=>{
+io.on("connection", (socket) => {
+  console.log("client terhubung dengan id " + socket.id);
+
+  socket.on("initialRoom", ({ namaRoom, username }) => {
+    const date = new Date()
+    const timeNow = moment(date).format('LT')
+    socket.join(`room:${namaRoom}`)
+    socket.broadcast.emit('receiverMessage', {
+      username: 'admin',
+      message: `${username} sudah masuk group`,
+      time: timeNow
+    })
+  })
+
+  socket.on('sendMessage', (data) => {
     // messageModels.insetMessage(data)
-    socket.broadcast.emit('recMessage', count +' '+ data)
-    count ++
+    const date = new Date()
+    const timeNow = moment(date).format('LT')
+    const dataMessage = { ...data, time: timeNow }
+    io.to(`room:${data.room}`).emit('receiverMessage', dataMessage)
     console.log(data);
   })
-  
-  
-  
-  socket.on("disconnect", reason=>{
-    console.log("client disconnect "+reason);
+
+  socket.on('leftRoom', ({ username, namaRoom }) => {
+    const date = new Date()
+    const timeNow = moment(date).format('LT')
+    const dataMessage = {
+      username: "admin",
+      message: `${username} telah meniggal group`,
+      time: timeNow
+    }
+    io.to(`room:${namaRoom}`).emit('receiverMessage', dataMessage)
   })
-  
+
+
+  socket.on("disconnect", reason => {
+    console.log("client disconnect " + reason);
+  })
+
 })
 
 // res api
