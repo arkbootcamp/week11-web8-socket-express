@@ -21,24 +21,18 @@ const io = socket(httpServer, {
 io.on("connection", (socket) => {
   console.log("client terhubung dengan id " + socket.id);
 
-  socket.on("initialRoom", ({ namaRoom, username }) => {
-    const date = new Date()
-    const timeNow = moment(date).format('LT')
-    socket.join(`room:${namaRoom}`)
-    socket.broadcast.emit('receiverMessage', {
-      username: 'admin',
-      message: `${username} sudah masuk group`,
-      time: timeNow
-    })
+  socket.on("initialUserLogin", (idUser) => {
+    console.log(`user:${idUser}`);
+    socket.join(`user:${idUser}`)
   })
 
-  socket.on('sendMessage', (data) => {
+  socket.on('sendMessage', (data, callback) => {
     // messageModels.insetMessage(data)
     const date = new Date()
     const timeNow = moment(date).format('LT')
     const dataMessage = { ...data, time: timeNow }
-    io.to(`room:${data.room}`).emit('receiverMessage', dataMessage)
-    console.log(data);
+    io.to(`user:${data.receiverId}`).emit('receiverMessage', dataMessage)
+    callback(dataMessage)
   })
 
   socket.on('leftRoom', ({ username, namaRoom }) => {
@@ -54,7 +48,8 @@ io.on("connection", (socket) => {
 
 
   socket.on("disconnect", reason => {
-    console.log("client disconnect " + reason);
+ 
+    console.log("client disconnect zzzzzzzzzzzzz " + reason);
   })
 
 })
